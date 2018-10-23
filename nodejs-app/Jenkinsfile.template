@@ -27,6 +27,11 @@ pipeline {
             stage('Nodejs Setup') {
               steps {
                 checkout scm
+                script {
+                  //use the Pipeline Utility Steps plugin readProperties step to read the .nodejs-app custom marker file 
+                  def props = readProperties file: '.nodejs-app'
+                  env.npmPackages = props['npmPackages']
+                }                
                 container('nodejs') {
                   sh '''
                     npm install express
@@ -84,37 +89,37 @@ pipeline {
         }
       }
     }
-    stage('Build & deploy') {
-      when {
-         beforeAgent true
-         branch 'master'
-      }
-      stages {
-         stage('Build and Push Image') {
-          agent any
-          steps {
-             unstash 'app'
-             echo "TODO - build and push image"
-          }
-          post {
-            success {
-              slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
-            }
-          }      
+       stage('Build and Push Image') {
+        when {
+           beforeAgent true
+           branch 'master'
         }
-        stage('Deploy') {
-          options {
-            timeout(time: 60, unit: 'SECONDS') 
+        agent any
+        steps {
+           unstash 'app'
+           echo "TODO - build and push image"
+        }
+        post {
+          success {
+            slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
           }
-          input {
-            message "Should we deploy?"
-            submitterParameter "APPROVER"
-          }
-          steps {
-            echo "Continuing with deployment - approved by ${APPROVER}"
-          }
-        } 
+        }      
       }
-    }
-  }
+      stage('Deploy') {
+        when {
+           beforeAgent true
+           branch 'master'
+        }
+        options {
+          timeout(time: 60, unit: 'SECONDS') 
+        }
+        input {
+          message "Should we deploy?"
+          submitterParameter "APPROVER"
+        }
+        steps {
+          echo "Continuing with deployment - approved by ${APPROVER}"
+        }
+      } 
+   }
 }
