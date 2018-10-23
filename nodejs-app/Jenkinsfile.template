@@ -1,4 +1,7 @@
 pipeline {
+  options { 
+    buildDiscarder(logRotator(numToKeepStr: '2'))
+  }
   agent any
   stages {
     stage('Say Hello') {
