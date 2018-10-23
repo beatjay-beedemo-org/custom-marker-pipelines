@@ -84,37 +84,37 @@ pipeline {
         }
       }
     }
-    stage('Build and Push Image') {
-      agent any
+    stage('Build & deploy') {
       when {
          beforeAgent true
          branch 'master'
       }
-      steps {
-         unstash 'app'
-         echo "TODO - build and push image"
-      }
-      post {
-        success {
-          slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
+      stages {
+         stage('Build and Push Image') {
+          agent any
+          steps {
+             unstash 'app'
+             echo "TODO - build and push image"
+          }
+          post {
+            success {
+              slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
+            }
+          }      
         }
-      }      
+        stage('Deploy') {
+          options {
+            timeout(time: 60, unit: 'SECONDS') 
+          }
+          input {
+            message "Should we deploy?"
+            submitterParameter "APPROVER"
+          }
+          steps {
+            echo "Continuing with deployment - approved by ${APPROVER}"
+          }
+        } 
+      }
     }
-    stage('Deploy') {
-      when {
-        beforeAgent true
-        branch 'master'
-      }
-      options {
-        timeout(time: 60, unit: 'SECONDS') 
-      }
-      input {
-        message "Should we deploy?"
-        submitterParameter "APPROVER"
-      }
-      steps {
-        echo "Continuing with deployment - approved by ${APPROVER}"
-      }
-    }    
   }
 }
