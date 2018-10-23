@@ -1,4 +1,4 @@
-library 'cd-accel'
+library 'cd-accel@completed'
 def testPodYaml = libraryResource 'podtemplates/nodejs-app/web-test-pod.yml'
 def loadTestPodYaml = libraryResource 'podtemplates/nodejs-app/load-test-pod.yml'
 pipeline {
@@ -84,37 +84,38 @@ pipeline {
         }
       }
     }
-       stage('Build and Push Image') {
-        when {
-           beforeAgent true
-           branch 'master'
-        }
-        agent any
-        steps {
-           unstash 'app'
-           echo "TODO - build and push image"
-        }
-        post {
-          success {
-            slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
-          }
-        }      
+    stage('Build and Push Image') {
+      when {
+        beforeAgent true
+        branch 'master'
+       }
+       agent any
+       steps {
+         dockerBuildPush(env.IMAGE_NAME, env.IMAGE_TAG) {
+         unstash 'app'
+       }
       }
-      stage('Deploy') {
-        when {
-           beforeAgent true
-           branch 'master'
+      post {
+        success {
+          slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
         }
-        options {
-          timeout(time: 60, unit: 'SECONDS') 
-        }
-        input {
-          message "Should we deploy?"
-          submitterParameter "APPROVER"
-        }
-        steps {
-          echo "Continuing with deployment - approved by ${APPROVER}"
-        }
-      } 
-   }
+      }      
+    }
+    stage('Deploy') {
+      when {
+         beforeAgent true
+         branch 'master'
+      }
+      options {
+        timeout(time: 60, unit: 'SECONDS') 
+      }
+      input {
+        message "Should we deploy?"
+        submitterParameter "APPROVER"
+      }
+      steps {
+        kubeDeploy(env.IMAGE_NAME, env.IMAGE_TAG)
+      }
+    } 
+  }
 }
