@@ -2,6 +2,11 @@ pipeline {
   options { 
     buildDiscarder(logRotator(numToKeepStr: '2'))
   }
+  post {
+    aborted {
+      echo "Why didn't you push my button?"
+    }
+  }
   agent none
   stages {
     stage('Test') {
